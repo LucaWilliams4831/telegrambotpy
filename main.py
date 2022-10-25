@@ -3,6 +3,7 @@
 import requests
 # Copyright (c) Aptos
 # SPDX-License-Identifier: Apache-2.0
+import time
 
 """
 This example depends on the MoonCoin.move module having already been published to the destination blockchain.
@@ -110,25 +111,43 @@ if __name__ == "__main__":
 
     # Liquidswap modules are deployed at the following address:
     # 0x190d44266241744264b964a37b8f09863167a12d3e70cda39376cfb4e3561e12
-
-    print("h")
+    coin_last_x = 0
+    coin_last_y = 0
     rest_client = CoinClient("https://fullnode.mainnet.aptoslabs.com/v1")
-    # r = rest_client.get_balance("0x5096d4314db80c0fde2a20ffacec0093e41ce6517bbe11cb9572af2bd8ef0303", "0x6c8f6a9c2b66a2590b68c870bb61dd2fdab6d30bed7bc2e7cf7bd59265f04301")
-    r = rest_client.get_reserves("0x5096d4314db80c0fde2a20ffacec0093e41ce6517bbe11cb9572af2bd8ef0303",
-                                 "0x05a97986a9d031c4567e15b797be516910cfcb4156312482efc6a19c0a30c948")
-    # r = rest_client.get_balance("0x190d44266241744264b964a37b8f09863167a12d3e70cda39376cfb4e3561e12", "0x05a97986a9d031c4567e15b797be516910cfcb4156312482efc6a19c0a30c948")
-    print(r)
-    TOKEN = "5529214043:AAGGnFv6MZPE5-pFcaElPapazNY4_GHlUu8"
-    chat_id = -618973730
-    buy_ball = "🟢"
-    message = "Buy "
-    message += buy_ball
-    # count the amount of apt purchased, add 1 ball every 1 apt
+    while True:
+        # r = rest_client.get_balance("0x5096d4314db80c0fde2a20ffacec0093e41ce6517bbe11cb9572af2bd8ef0303", "0x6c8f6a9c2b66a2590b68c870bb61dd2fdab6d30bed7bc2e7cf7bd59265f04301")
+        r = rest_client.get_reserves("0x5096d4314db80c0fde2a20ffacec0093e41ce6517bbe11cb9572af2bd8ef0303",
+                                     "0x05a97986a9d031c4567e15b797be516910cfcb4156312482efc6a19c0a30c948")
+        # r = rest_client.get_balance("0x190d44266241744264b964a37b8f09863167a12d3e70cda39376cfb4e3561e12", "0x05a97986a9d031c4567e15b797be516910cfcb4156312482efc6a19c0a30c948")
+        # print(r)
 
-    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage?chat_id={chat_id}&text={message}"
-    telegram_request = requests.get(url).json()
-    print(telegram_request) # this sends the message
-    apt_price = get_apt_price(1.9)
-    print(apt_price)
+        coin_x = r["data"]["coin_x"]["value"]
+        coin_y = r["data"]["coin_y"]["value"]
 
+        print("coin_x", coin_x)
+        print("coin_x", coin_y)
 
+        print("coin_x", coin_last_x)
+        print("coin_last_y", coin_last_y)
+        print("")
+
+        TOKEN = "5529214043:AAGGnFv6MZPE5-pFcaElPapazNY4_GHlUu8"
+        chat_id = -618973730
+        buy_ball = "🟢"
+        message = "Buy "
+        message += buy_ball
+        # count the amount of apt purchased, add 1 ball every 1 apt
+
+        apt_last_price = get_apt_price(1)
+        apt_price = get_apt_price(1)
+
+        if int(coin_x) > int(coin_last_x):
+            coin_last_x = coin_x
+            coin_last_y = coin_y
+            message = "Buy "
+            message += buy_ball
+            url = f"https://api.telegram.org/bot{TOKEN}/sendMessage?chat_id={chat_id}&text={message}"
+            #telegram_request = requests.get(url).json()
+            # print(telegram_request)
+            print(message)
+        time.sleep(3)
