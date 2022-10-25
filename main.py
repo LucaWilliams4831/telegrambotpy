@@ -78,9 +78,9 @@ class CoinClient(RestClient):
 
         balance = self.account_resource(
             account_address,
-            f"0x1::coin::CoinStore<{coin_address}::tesla_token::TeslaToken>",
+            f"0x190d44266241744264b964a37b8f09863167a12d3e70cda39376cfb4e3561e12::dao_storage::Storage<0x1::aptos_coin::AptosCoin, 0x5096d4314db80c0fde2a20ffacec0093e41ce6517bbe11cb9572af2bd8ef0303::tesla_token::TeslaToken, 0x190d44266241744264b964a37b8f09863167a12d3e70cda39376cfb4e3561e12::curves::Uncorrelated>",
         )
-        return balance["data"]["coin"]["value"]
+        return balance
 
     def get_reserves(
         self,
@@ -95,8 +95,8 @@ class CoinClient(RestClient):
         )
         return data
 
-# get the latest price of APT from coinmarketcap
 
+# get the latest price of APT from coinmarketcap
 
 def get_apt_price(amount):
     apt_price = cmc.cryptocurrency_quotes_latest(symbol='APT', convert='USD')
@@ -115,6 +115,13 @@ if __name__ == "__main__":
     coin_last_y = 0
     rest_client = CoinClient("https://fullnode.mainnet.aptoslabs.com/v1")
     index = 0
+
+    r = rest_client.get_balance("0x5096d4314db80c0fde2a20ffacec0093e41ce6517bbe11cb9572af2bd8ef0303",
+                                        "0x05a97986a9d031c4567e15b797be516910cfcb4156312482efc6a19c0a30c948")
+    print(r)
+    # r = rest_client.get_reserves("0x5096d4314db80c0fde2a20ffacec0093e41ce6517bbe11cb9572af2bd8ef0303",
+    #                                 "0x05a97986a9d031c4567e15b797be516910cfcb4156312482efc6a19c0a30c948")
+    # print(r)
     while True:
         # r = rest_client.get_balance("0x5096d4314db80c0fde2a20ffacec0093e41ce6517bbe11cb9572af2bd8ef0303", "0x6c8f6a9c2b66a2590b68c870bb61dd2fdab6d30bed7bc2e7cf7bd59265f04301")
         r = rest_client.get_reserves("0x5096d4314db80c0fde2a20ffacec0093e41ce6517bbe11cb9572af2bd8ef0303",
@@ -148,17 +155,20 @@ if __name__ == "__main__":
             for x in range(0, int(differ) + 1):
                 message += buy_ball
             message += "\n"
-            message += "💵" + str(differ) + " APT ($" + str(get_apt_price(differ)) + ")\n"
-            message += str(coin_y) + "  " + str(coin_last_y)
+            message += "💵" + str(round(differ, 4)) + " APT ($" + str(round(get_apt_price(differ), 4)) + ")\n"
+            # message += str(coin_y) + "  " + str(coin_last_y)
             
-            message += "🪙"  + str(abs(int(coin_y) - int(coin_last_y))) + " TSLA\n"
-            message += "🔘 Market Cap $" + str(coin_x)
+            # message += "🪙"  + str(abs(int(coin_y) - int(coin_last_y))) + " TSLA\n"
+            message += "🪙"  + str(round(float(coin_y) * 1e-6,4)) + " TSLA\n"
+            message += "⏫ Position +24.23%\n"
+            message += "🔘 Market Cap $" + str(round(get_apt_price(float(coin_x) * 1e-6),4)) + "\n\n"
+            message += "<a href='https://explorer.aptoslabs.com/transactions?type=all'>📊 Chart</a>" + "  <a href='https://explorer.aptoslabs.com/transactions?type=all'>⚙️ Tracker</a>" + "  <a href='https://explorer.aptoslabs.com/transactions?type=all'>🔵 Trending</a>"
             coin_last_x = coin_x
             coin_last_y = coin_y
-            url = f"https://api.telegram.org/bot{TOKEN}/sendMessage?chat_id={chat_id}&text={message}"
+            url = f"https://api.telegram.org/bot{TOKEN}/sendMessage?chat_id={chat_id}&text={message}&parse_mode=HTML"
             if index != 0:
                 telegram_request = requests.get(url).json()
 
 
         index = index + 1
-        time.sleep(3)
+        time.sleep(2)
