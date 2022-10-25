@@ -144,11 +144,14 @@ if __name__ == "__main__":
         buy_ball = "🟢"
         message = ""
            
-        if int(coin_x) != int(coin_last_x):
+        if int(coin_x) > int(coin_last_x):
             differ = (float(coin_x) - float(coin_last_x)) * 1e-6
             if differ > 0:
+                print("BUY")
                 message += "Buy!\n"
+                message += "<img src='http://i.stack.imgur.com/SBv4T.gif' alt='this slowpoke moves'  width='250' />"
             else:
+                print("SELL")
                 message += "Sell\n"
                 differ = differ * (-1)
             # for x in range(0, int(differ + 1)):
@@ -167,6 +170,7 @@ if __name__ == "__main__":
             coin_last_y = coin_y
             url = f"https://api.telegram.org/bot{TOKEN}/sendMessage?chat_id={chat_id}&text={message}&parse_mode=HTML"
             if index != 0:
+                print("SEND")
                 telegram_request = requests.get(url).json()
 
 
