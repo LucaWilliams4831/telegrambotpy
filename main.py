@@ -120,9 +120,15 @@ if __name__ == "__main__":
     print(r)
     TOKEN = "5529214043:AAGGnFv6MZPE5-pFcaElPapazNY4_GHlUu8"
     chat_id = -618973730
-    message = "hello from your telegram bot from luca"
+    buy_ball = "🟢"
+    message = "Buy "
+    message += buy_ball
+    # count the amount of apt purchased, add 1 ball every 1 apt
+
     url = f"https://api.telegram.org/bot{TOKEN}/sendMessage?chat_id={chat_id}&text={message}"
     telegram_request = requests.get(url).json()
     print(telegram_request) # this sends the message
     apt_price = get_apt_price(1.9)
     print(apt_price)
+
+
