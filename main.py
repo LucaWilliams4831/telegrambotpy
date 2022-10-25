@@ -114,6 +114,7 @@ if __name__ == "__main__":
     coin_last_x = 0
     coin_last_y = 0
     rest_client = CoinClient("https://fullnode.mainnet.aptoslabs.com/v1")
+    index = 0
     while True:
         # r = rest_client.get_balance("0x5096d4314db80c0fde2a20ffacec0093e41ce6517bbe11cb9572af2bd8ef0303", "0x6c8f6a9c2b66a2590b68c870bb61dd2fdab6d30bed7bc2e7cf7bd59265f04301")
         r = rest_client.get_reserves("0x5096d4314db80c0fde2a20ffacec0093e41ce6517bbe11cb9572af2bd8ef0303",
@@ -125,7 +126,7 @@ if __name__ == "__main__":
         coin_y = r["data"]["coin_y"]["value"]
 
         print("coin_x", coin_x)
-        print("coin_x", coin_y)
+        print("coin_y", coin_y)
 
         print("coin_x", coin_last_x)
         print("coin_last_y", coin_last_y)
@@ -134,20 +135,30 @@ if __name__ == "__main__":
         TOKEN = "5529214043:AAGGnFv6MZPE5-pFcaElPapazNY4_GHlUu8"
         chat_id = -618973730
         buy_ball = "🟢"
-        message = "Buy "
-        message += buy_ball
-        # count the amount of apt purchased, add 1 ball every 1 apt
-
-        apt_last_price = get_apt_price(1)
-        apt_price = get_apt_price(1)
-
-        if int(coin_x) > int(coin_last_x):
+        message = ""
+           
+        if int(coin_x) != int(coin_last_x):
+            differ = (float(coin_x) - float(coin_last_x)) * 1e-6
+            if differ > 0:
+                message += "Buy!\n"
+            else:
+                message += "Sell\n"
+                differ = differ * (-1)
+            # for x in range(0, int(differ + 1)):
+            for x in range(0, int(differ) + 1):
+                message += buy_ball
+            message += "\n"
+            message += "💵" + str(differ) + " APT ($" + str(get_apt_price(differ)) + ")\n"
+            message += str(coin_y) + "  " + str(coin_last_y)
+            
+            message += "🪙"  + str(abs(int(coin_y) - int(coin_last_y))) + " TSLA\n"
+            message += "🔘 Market Cap $" + str(coin_x)
             coin_last_x = coin_x
             coin_last_y = coin_y
-            message = "Buy "
-            message += buy_ball
             url = f"https://api.telegram.org/bot{TOKEN}/sendMessage?chat_id={chat_id}&text={message}"
-            #telegram_request = requests.get(url).json()
-            # print(telegram_request)
-            print(message)
+            if index != 0:
+                telegram_request = requests.get(url).json()
+
+
+        index = index + 1
         time.sleep(3)
