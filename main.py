@@ -1,5 +1,6 @@
 
 
+from more_itertools import last
 import requests
 # Copyright (c) Aptos
 # SPDX-License-Identifier: Apache-2.0
@@ -84,7 +85,6 @@ class CoinClient(RestClient):
 
     def get_reserves(
         self,
-        coin_address: AccountAddress,
         account_address: AccountAddress,
     ) -> str:
         """Returns the coin balance of the given account"""
@@ -92,6 +92,19 @@ class CoinClient(RestClient):
         data = self.account_resource(
             account_address,
             f"0x190d44266241744264b964a37b8f09863167a12d3e70cda39376cfb4e3561e12::dao_storage::Storage<0x1::aptos_coin::AptosCoin, 0x5096d4314db80c0fde2a20ffacec0093e41ce6517bbe11cb9572af2bd8ef0303::tesla_token::TeslaToken, 0x190d44266241744264b964a37b8f09863167a12d3e70cda39376cfb4e3561e12::curves::Uncorrelated>",
+        )
+        return data
+
+    def get_amount_out(
+        self,
+        account_address: AccountAddress,
+    ) -> str:
+        """Returns the coin balance of the given account"""
+
+
+        data = self.account_resource(
+            account_address,
+            f"0x190d44266241744264b964a37b8f09863167a12d3e70cda39376cfb4e3561e12::liquidity_pool::OracleUpdatedEvent<0x1::aptos_coin::AptosCoin, 0x5096d4314db80c0fde2a20ffacec0093e41ce6517bbe11cb9572af2bd8ef0303::tesla_token::TeslaToken, 0x190d44266241744264b964a37b8f09863167a12d3e70cda39376cfb4e3561e12::curves::Uncorrelated>",
         )
         return data
 
@@ -104,8 +117,23 @@ def get_apt_price(amount):
     return apt_price * amount
 
 
+def send_video(chat_id, image_path, image_caption=""):
+    data = {"chat_id": chat_id, "caption": image_caption}
+    url = f"https://api.telegram.org/bot{TOKEN}/sendVideo?chat_id={chat_id}"
+    #url = "https://api.telegram.org/%s/sendPhoto" % TOKEN
+    with open(image_path, "rb") as image_file:
+        ret = requests.post(url, data=data, files={"video": image_file}).json()
+        #telegram_request = requests.get(url).json()
+        print(ret)
+
+def get_percentage_increase(num_a, num_b):
+    return ((num_a - num_b) / num_b) * 100
+
 if __name__ == "__main__":
     cmc = CoinMarketCapAPI('0caa3779-3cb2-4665-a7d3-652823b53908')
+    TOKEN = "5529214043:AAGGnFv6MZPE5-pFcaElPapazNY4_GHlUu8"
+    chat_id = -618973730
+
     # All liquidity pools resources and LP coins currently placed at the following resource account:
     # 0x05a97986a9d031c4567e15b797be516910cfcb4156312482efc6a19c0a30c948
 
@@ -115,17 +143,21 @@ if __name__ == "__main__":
     coin_last_y = 0
     rest_client = CoinClient("https://fullnode.mainnet.aptoslabs.com/v1")
     index = 0
+    last_price = 1;
 
-    r = rest_client.get_balance("0x5096d4314db80c0fde2a20ffacec0093e41ce6517bbe11cb9572af2bd8ef0303",
-                                        "0x05a97986a9d031c4567e15b797be516910cfcb4156312482efc6a19c0a30c948")
+    r = rest_client.get_amount_out("0x05a97986a9d031c4567e15b797be516910cfcb4156312482efc6a19c0a30c948")
     print(r)
+    #r = rest_client.get_reserves("0x05a97986a9d031c4567e15b797be516910cfcb4156312482efc6a19c0a30c948")
+    #print(r)
+
+    exit(0)
+
     # r = rest_client.get_reserves("0x5096d4314db80c0fde2a20ffacec0093e41ce6517bbe11cb9572af2bd8ef0303",
     #                                 "0x05a97986a9d031c4567e15b797be516910cfcb4156312482efc6a19c0a30c948")
     # print(r)
     while True:
         # r = rest_client.get_balance("0x5096d4314db80c0fde2a20ffacec0093e41ce6517bbe11cb9572af2bd8ef0303", "0x6c8f6a9c2b66a2590b68c870bb61dd2fdab6d30bed7bc2e7cf7bd59265f04301")
-        r = rest_client.get_reserves("0x5096d4314db80c0fde2a20ffacec0093e41ce6517bbe11cb9572af2bd8ef0303",
-                                     "0x05a97986a9d031c4567e15b797be516910cfcb4156312482efc6a19c0a30c948")
+        r = rest_client.get_reserves("0x5096d4314db80c0fde2a20ffacec0093e41ce6517bbe11cb9572af2bd8ef0303")
         # r = rest_client.get_balance("0x190d44266241744264b964a37b8f09863167a12d3e70cda39376cfb4e3561e12", "0x05a97986a9d031c4567e15b797be516910cfcb4156312482efc6a19c0a30c948")
         # print(r)
 
@@ -139,40 +171,49 @@ if __name__ == "__main__":
         print("coin_last_y", coin_last_y)
         print("")
 
-        TOKEN = "5529214043:AAGGnFv6MZPE5-pFcaElPapazNY4_GHlUu8"
-        chat_id = -618973730
         buy_ball = "🟢"
         message = ""
-           
-        if int(coin_x) > int(coin_last_x):
-            differ = (float(coin_x) - float(coin_last_x)) * 1e-6
+
+        img = "https://i.ibb.co/cCc9bDq/ezgif-com-gif-maker.gif"
+
+        if int(coin_x) != int(coin_last_x):
+            differ = (float(coin_x) - float(coin_last_x)) * 1e-5
+            print("differ", differ)
             if differ > 0:
                 print("BUY")
                 message += "Buy!\n"
-                message += "<img src='http://i.stack.imgur.com/SBv4T.gif' alt='this slowpoke moves'  width='250' />"
             else:
                 print("SELL")
                 message += "Sell\n"
                 differ = differ * (-1)
+
+            price = round(get_apt_price(differ), 4)
+            price_change_percentage = get_percentage_increase(price, last_price)
             # for x in range(0, int(differ + 1)):
             for x in range(0, int(differ) + 1):
                 message += buy_ball
             message += "\n"
-            message += "💵" + str(round(differ, 4)) + " APT ($" + str(round(get_apt_price(differ), 4)) + ")\n"
+            message += "💵" + str(round(differ, 4)) + " APT ($" + \
+                str(price) + ")\n"
             # message += str(coin_y) + "  " + str(coin_last_y)
-            
+
             # message += "🪙"  + str(abs(int(coin_y) - int(coin_last_y))) + " TSLA\n"
-            message += "🪙"  + str(round(float(coin_y) * 1e-6,4)) + " TSLA\n"
-            message += "⏫ Position +24.23%\n"
-            message += "🔘 Market Cap $" + str(round(get_apt_price(float(coin_x) * 1e-6),4)) + "\n\n"
-            message += "<a href='https://explorer.aptoslabs.com/transactions?type=all'>📊 Chart</a>" + "  <a href='https://explorer.aptoslabs.com/transactions?type=all'>⚙️ Tracker</a>" + "  <a href='https://explorer.aptoslabs.com/transactions?type=all'>🔵 Trending</a>"
+            message += "🪙" + str(round(float(coin_y) * 1e-6, 4)) + " TSLA\n"
+            message += "⏫ Position +"+str(price_change_percentage)+"%\n"
+            message += "🔘 Market Cap $" + \
+                str(round(get_apt_price(float(coin_x) * 1e-6), 4)) + "\n\n"
+            message += '📊 [Chart](https://explorer.aptoslabs.com/transactions?type=all)'
+            message += '⚙️ [Tracker](https://explorer.aptoslabs.com/transactions?type=all)'
+            message += '🔵  [Trending](https://explorer.aptoslabs.com/transactions?type=all)'
             coin_last_x = coin_x
             coin_last_y = coin_y
-            url = f"https://api.telegram.org/bot{TOKEN}/sendMessage?chat_id={chat_id}&text={message}&parse_mode=HTML"
+            last_price = price
             if index != 0:
                 print("SEND")
-                telegram_request = requests.get(url).json()
+                r = requests.get('https://api.telegram.org/bot' + TOKEN + '/sendMessage?chat_id='+str(
+                    chat_id)+'&parse_mode=markdown&text='+"[​​​​​​​​​​​]("+img+")" + message).json()
 
+                #send_video(chat_id, "./buy.mp4", message)
 
         index = index + 1
         time.sleep(2)
