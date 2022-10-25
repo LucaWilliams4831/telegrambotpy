@@ -1,8 +1,6 @@
 
 
 import requests
-import time
-import json
 # Copyright (c) Aptos
 # SPDX-License-Identifier: Apache-2.0
 
@@ -91,20 +89,7 @@ class CoinClient(RestClient):
 
         data = self.account_resource(
             account_address,
-            f"0x1::coin::CoinStore<{coin_address}::tesla_token::TeslaToken>",
-        )
-        return data
-
-    def get_reservesv2(
-        self,
-        coin_X_address: AccountAddress,
-        coin_Y_address: AccountAddress) -> str:
-        """Returns the coin balance of the given account"""
-
-        data = self.account_resource(
-            coin_X_address,
-            coin_Y_address,
-            f"0x190d44266241744264b964a37b8f09863167a12d3e70cda39376cfb4e3561e12::scripts_v2::swap>",
+            f"0x190d44266241744264b964a37b8f09863167a12d3e70cda39376cfb4e3561e12::dao_storage::Storage<0x1::aptos_coin::AptosCoin, 0x5096d4314db80c0fde2a20ffacec0093e41ce6517bbe11cb9572af2bd8ef0303::tesla_token::TeslaToken, 0x190d44266241744264b964a37b8f09863167a12d3e70cda39376cfb4e3561e12::curves::Uncorrelated>",
         )
         return data
 
@@ -118,20 +103,12 @@ if __name__ == "__main__":
 
     print("h")
     rest_client = CoinClient("https://fullnode.mainnet.aptoslabs.com/v1")
-    #r = rest_client.get_balance("0x5096d4314db80c0fde2a20ffacec0093e41ce6517bbe11cb9572af2bd8ef0303", "0x6c8f6a9c2b66a2590b68c870bb61dd2fdab6d30bed7bc2e7cf7bd59265f04301")
-    #r = rest_client.get_reserves("0x5096d4314db80c0fde2a20ffacec0093e41ce6517bbe11cb9572af2bd8ef0303", "0x6c8f6a9c2b66a2590b68c870bb61dd2fdab6d30bed7bc2e7cf7bd59265f04301")
+    # r = rest_client.get_balance("0x5096d4314db80c0fde2a20ffacec0093e41ce6517bbe11cb9572af2bd8ef0303", "0x6c8f6a9c2b66a2590b68c870bb61dd2fdab6d30bed7bc2e7cf7bd59265f04301")
+    r = rest_client.get_reserves("0x5096d4314db80c0fde2a20ffacec0093e41ce6517bbe11cb9572af2bd8ef0303", "0x05a97986a9d031c4567e15b797be516910cfcb4156312482efc6a19c0a30c948")
     # r = rest_client.get_balance("0x190d44266241744264b964a37b8f09863167a12d3e70cda39376cfb4e3561e12", "0x05a97986a9d031c4567e15b797be516910cfcb4156312482efc6a19c0a30c948")
-    # print(r)
-
-    while True:
-        r = rest_client.get_reservesv2("0x5096d4314db80c0fde2a20ffacec0093e41ce6517bbe11cb9572af2bd8ef0303",
-                                     "0x05a97986a9d031c4567e15b797be516910cfcb4156312482efc6a19c0a30c948")
-        formatted = json.dumps(r, indent=4)
-        print(formatted)
-        time.sleep(1)
-
-    #TOKEN = "5529214043:AAGGnFv6MZPE5-pFcaElPapazNY4_GHlUu8"
-    #chat_id = -618973730
-    #message = "hello from your telegram bot from luca"
+    print(r)    
+    TOKEN = "5529214043:AAGGnFv6MZPE5-pFcaElPapazNY4_GHlUu8"
+    chat_id = -618973730
+    message = "hello from your telegram bot from luca"
     # url = f"https://api.telegram.org/bot{TOKEN}/sendMessage?chat_id={chat_id}&text={message}"
     # print(requests.get(url).json()) # this sends the message
