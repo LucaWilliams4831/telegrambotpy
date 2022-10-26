@@ -1,9 +1,13 @@
 
 
+from more_itertools import last
 import requests
 # Copyright (c) Aptos
 # SPDX-License-Identifier: Apache-2.0
 import time
+import os
+from dotenv import load_dotenv
+
 
 """
 This example depends on the MoonCoin.move module having already been published to the destination blockchain.
@@ -84,14 +88,29 @@ class CoinClient(RestClient):
 
     def get_reserves(
         self,
-        coin_address: AccountAddress,
         account_address: AccountAddress,
+        token_address: str,
     ) -> str:
         """Returns the coin balance of the given account"""
 
         data = self.account_resource(
             account_address,
-            f"0x190d44266241744264b964a37b8f09863167a12d3e70cda39376cfb4e3561e12::dao_storage::Storage<0x1::aptos_coin::AptosCoin, 0x5096d4314db80c0fde2a20ffacec0093e41ce6517bbe11cb9572af2bd8ef0303::tesla_token::TeslaToken, 0x190d44266241744264b964a37b8f09863167a12d3e70cda39376cfb4e3561e12::curves::Uncorrelated>",
+            f"0x190d44266241744264b964a37b8f09863167a12d3e70cda39376cfb4e3561e12::dao_storage::Storage<0x1::aptos_coin::AptosCoin, " +
+            token_address+", 0x190d44266241744264b964a37b8f09863167a12d3e70cda39376cfb4e3561e12::curves::Uncorrelated>",
+        )
+        return data["data"]["coin_x"]["value"], data["data"]["coin_y"]["value"]
+
+    def get_liquidity_pool_info(
+        self,
+        account_address: AccountAddress,
+        token_address: str,
+    ) -> str:
+        """Returns the coin balance of the given account"""
+
+        data = self.account_resource(
+            account_address,
+            f"0x190d44266241744264b964a37b8f09863167a12d3e70cda39376cfb4e3561e12::liquidity_pool::LiquidityPool<0x1::aptos_coin::AptosCoin, " +
+            token_address+", 0x190d44266241744264b964a37b8f09863167a12d3e70cda39376cfb4e3561e12::curves::Uncorrelated>",
         )
         return data
 
@@ -104,71 +123,100 @@ def get_apt_price(amount):
     return apt_price * amount
 
 
-if __name__ == "__main__":
-    cmc = CoinMarketCapAPI('0caa3779-3cb2-4665-a7d3-652823b53908')
-    # All liquidity pools resources and LP coins currently placed at the following resource account:
-    # 0x05a97986a9d031c4567e15b797be516910cfcb4156312482efc6a19c0a30c948
+def send_video(chat_id, image_path, image_caption=""):
+    data = {"chat_id": chat_id, "caption": image_caption}
+    url = f"https://api.telegram.org/bot{TOKEN}/sendVideo?chat_id={chat_id}"
+    # url = "https://api.telegram.org/%s/sendPhoto" % TOKEN
+    with open(image_path, "rb") as image_file:
+        ret = requests.post(url, data=data, files={"video": image_file}).json()
+        # telegram_request = requests.get(url).json()
+        print(ret)
 
-    # Liquidswap modules are deployed at the following address:
-    # 0x190d44266241744264b964a37b8f09863167a12d3e70cda39376cfb4e3561e12
-    coin_last_x = 0
-    coin_last_y = 0
+
+def send_message(token, chat_id, img, message):
+    r = requests.get('https://api.telegram.org/bot' + token + '/sendMessage?chat_id='+str(
+        chat_id)+'&parse_mode=markdown&text='+"[​​​​​​​​​​​]("+img+")" + message).json()
+    print
+
+
+def get_percentage_increase(num_a, num_b):
+    return ((num_a - num_b) / num_b) * 100
+
+
+def create_message(differ, coin_x, coin_last_x, coin_y, chart, tracker, trending):
+
+    message = "Buy!\n"
+    price = round(get_apt_price(differ), 4)
+    price_change_percentage = get_percentage_increase(
+        int(coin_x), int(coin_last_x))
+    price_change_percentage *= 10
+    # for x in range(0, int(differ + 1)):
+    for x in range(0, int(differ) + 1):
+        message += "🟢"
+    message += "\n"
+    message += "💵" + str(round(differ, 4)) + " APT ($" + str(price) + ")\n"
+    # message += str(coin_y) + "  " + str(coin_last_y)
+
+    # message += "🪙"  + str(abs(int(coin_y) - int(coin_last_y))) + " TSLA\n"
+    message += "🪙" + \
+        str(round(float(coin_y) * 1e-6, 2)) + " TSLA\n"
+    message += "⏫ Position +" + \
+        str(round(price_change_percentage, 4))+"%\n"
+    message += "🔘 Market Cap $" + \
+        str(round(get_apt_price(float(coin_x) * 1e-6), 2)) + "\n\n"
+    message += '📊 [Chart]('+chart+')'
+    message += '⚙️ [Tracker]('+tracker+')'
+    message += '🔵 [Trending]('+trending+')'
+
+    return message
+
+# All liquidity pools resources and LP coins currently placed at the following resource account:
+# 0x05a97986a9d031c4567e15b797be516910cfcb4156312482efc6a19c0a30c948
+
+
+# Liquidswap modules are deployed at the following address:
+# 0x190d44266241744264b964a37b8f09863167a12d3e70cda39376cfb4e3561e12
+if __name__ == "__main__":
+    load_dotenv()
+    cmc = CoinMarketCapAPI(os.getenv('CMC_API'))
+    TOKEN = os.getenv('TELEGRAM_TOKEN')
+    token_address = os.getenv('TOKEN_ADDRESS')
+    chat_id = os.getenv('CHAT_ID')
+    img = os.getenv('GIF_URL')
+    chart = os.getenv('CHART_URL')
+    tracker = os.getenv('TRACKER_URL')
+    trending = os.getenv('TRENDING_URL')
+
+    coin_last_x = 1
+    coin_last_y = 1
     rest_client = CoinClient("https://fullnode.mainnet.aptoslabs.com/v1")
     index = 0
 
-    r = rest_client.get_balance("0x5096d4314db80c0fde2a20ffacec0093e41ce6517bbe11cb9572af2bd8ef0303",
-                                        "0x05a97986a9d031c4567e15b797be516910cfcb4156312482efc6a19c0a30c948")
-    print(r)
-    # r = rest_client.get_reserves("0x5096d4314db80c0fde2a20ffacec0093e41ce6517bbe11cb9572af2bd8ef0303",
-    #                                 "0x05a97986a9d031c4567e15b797be516910cfcb4156312482efc6a19c0a30c948")
-    # print(r)
     while True:
-        # r = rest_client.get_balance("0x5096d4314db80c0fde2a20ffacec0093e41ce6517bbe11cb9572af2bd8ef0303", "0x6c8f6a9c2b66a2590b68c870bb61dd2fdab6d30bed7bc2e7cf7bd59265f04301")
-        r = rest_client.get_reserves("0x5096d4314db80c0fde2a20ffacec0093e41ce6517bbe11cb9572af2bd8ef0303",
-                                     "0x05a97986a9d031c4567e15b797be516910cfcb4156312482efc6a19c0a30c948")
-        # r = rest_client.get_balance("0x190d44266241744264b964a37b8f09863167a12d3e70cda39376cfb4e3561e12", "0x05a97986a9d031c4567e15b797be516910cfcb4156312482efc6a19c0a30c948")
-        # print(r)
-
-        coin_x = r["data"]["coin_x"]["value"]
-        coin_y = r["data"]["coin_y"]["value"]
+        (coin_x, coin_y) = rest_client.get_reserves(
+            "0x05a97986a9d031c4567e15b797be516910cfcb4156312482efc6a19c0a30c948", token_address)
 
         print("coin_x", coin_x)
         print("coin_y", coin_y)
-
         print("coin_x", coin_last_x)
         print("coin_last_y", coin_last_y)
         print("")
 
-        TOKEN = "5529214043:AAGGnFv6MZPE5-pFcaElPapazNY4_GHlUu8"
-        chat_id = -618973730
-        buy_ball = "🟢"
-        message = ""
-           
         if int(coin_x) != int(coin_last_x):
-            differ = (float(coin_x) - float(coin_last_x)) * 1e-6
+            differ = (float(coin_x) - float(coin_last_x)) * 1e-5
+            print("differ", differ)
             if differ > 0:
-                message += "Buy!\n"
+                coin_last_x = coin_x
+                coin_last_y = coin_y
+                print("BUY")
+
+                message = create_message(differ, coin_x, coin_last_x, coin_y, chart, tracker, trending)
+
+                if index != 0:
+                    print("SEND")
+                    print(message)
+                    #send_message(TOKEN, chat_id, img, message)
             else:
-                message += "Sell\n"
-                differ = differ * (-1)
-            # for x in range(0, int(differ + 1)):
-            for x in range(0, int(differ) + 1):
-                message += buy_ball
-            message += "\n"
-            message += "💵" + str(round(differ, 4)) + " APT ($" + str(round(get_apt_price(differ), 4)) + ")\n"
-            # message += str(coin_y) + "  " + str(coin_last_y)
-            
-            # message += "🪙"  + str(abs(int(coin_y) - int(coin_last_y))) + " TSLA\n"
-            message += "🪙"  + str(round(float(coin_y) * 1e-6,4)) + " TSLA\n"
-            message += "⏫ Position +24.23%\n"
-            message += "🔘 Market Cap $" + str(round(get_apt_price(float(coin_x) * 1e-6),4)) + "\n\n"
-            message += "<a href='https://explorer.aptoslabs.com/transactions?type=all'>📊 Chart</a>" + "  <a href='https://explorer.aptoslabs.com/transactions?type=all'>⚙️ Tracker</a>" + "  <a href='https://explorer.aptoslabs.com/transactions?type=all'>🔵 Trending</a>"
-            coin_last_x = coin_x
-            coin_last_y = coin_y
-            url = f"https://api.telegram.org/bot{TOKEN}/sendMessage?chat_id={chat_id}&text={message}&parse_mode=HTML"
-            if index != 0:
-                telegram_request = requests.get(url).json()
-
-
+                print("SELL")
         index = index + 1
         time.sleep(2)
